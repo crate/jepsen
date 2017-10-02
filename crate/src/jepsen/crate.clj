@@ -174,9 +174,11 @@
     (c/cd "/tmp"
           (c/exec :wget "https://cdn.crate.io/downloads/apt/DEB-GPG-KEY-crate")
           (c/exec :apt-key :add "DEB-GPG-KEY-crate")
-          (c/exec :rm "DEB-GPG-KEY-crate"))
-    (debian/add-repo! "crate" "deb https://cdn.crate.io/downloads/apt/stable/ jessie main")
-    (debian/install {:crate "0.55.2-1~jessie"})
+          (c/exec :rm "DEB-GPG-KEY-crate")
+          (c/exec :wget "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_0.55.2-1~jessie_all.deb")
+          (c/exec :dpkg :-i "crate_0.55.2-1~jessie_all.deb")
+          (c/exec :apt-get :install :-f)
+          (c/exec :rm "crate_0.55.2-1~jessie_all.deb"))          
     (c/exec :update-rc.d :crate :disable))
   (info node "crate installed"))
 
