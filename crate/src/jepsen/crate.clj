@@ -335,6 +335,7 @@
           :client  (client)
           :checker (checker/compose
                      {:multi    (independent/checker (multiversion-checker))
+                      :timeline (timeline/html)
                       :perf     (checker/perf)})
           :concurrency 100
           :nemesis (nemesis/partition-random-halves)
