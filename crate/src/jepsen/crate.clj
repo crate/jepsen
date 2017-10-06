@@ -167,7 +167,7 @@
 
 (defn install!
   "Install crate."
-  [node]
+  [node crateVersion]
   (c/su
     (debian/install [:apt-transport-https])
     (debian/install-jdk8!)
@@ -175,10 +175,10 @@
           (c/exec :wget "https://cdn.crate.io/downloads/apt/DEB-GPG-KEY-crate")
           (c/exec :apt-key :add "DEB-GPG-KEY-crate")
           (c/exec :rm "DEB-GPG-KEY-crate")
-          (c/exec :wget "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_0.55.2-1~jessie_all.deb")
-          (c/exec :dpkg :-i "crate_0.55.2-1~jessie_all.deb")
+          (c/exec :wget (str "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_" crateVersion "-1~jessie_all.deb"))
+          (c/exec :dpkg :-i (str "crate_" crateVersion "-1~jessie_all.deb"))
           (c/exec :apt-get :install :-f)
-          (c/exec :rm "crate_0.55.2-1~jessie_all.deb"))          
+          (c/exec :rm (str "crate_" crateVersion "-1~jessie_all.deb")))
     (c/exec :update-rc.d :crate :disable))
   (info node "crate installed"))
 
@@ -212,11 +212,11 @@
     (info node "started")))
 
 (defn db
-  []
+  [crateVersion]
   (reify db/DB
     (setup! [_ test node]
       (doto node
-        (install!)
+        (install! crateVersion)
         (configure! test)
         (start!)))
 
@@ -331,7 +331,7 @@
   (merge tests/noop-test
          {:name    "crate"
           :os      debian/os
-          :db      (db)
+          :db      (db (subs (str (get opts :crate-version)) 1))
           :client  (client)
           :checker (checker/compose
                      {:multi    (independent/checker (multiversion-checker))
@@ -352,9 +352,17 @@
                           (gen/time-limit 360))}
          opts))
 
+(def opt-spec
+  "Additional command line options"
+  [[nil "--crate-version CRATE_VERSION" "CrateDB Version, e.g. 2.0.7"
+    :parse-fn keyword
+    :missing  (str "Missing --crate-version CRATE_VERSION")
+    ]])
+
 (defn -main [& args]
-  "Handles command line arguments. Can either run a test, or a web service 
+  "Handles command line arguments. Can either run a test, or a web service
   browsing results."
-  (cli/run! (merge (cli/single-test-cmd {:test-fn an-test})
+  (cli/run! (merge (cli/single-test-cmd {:test-fn   an-test
+                                         :opt-spec  opt-spec})
                    (cli/serve-cmd))
             args))
