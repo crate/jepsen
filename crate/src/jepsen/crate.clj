@@ -175,10 +175,10 @@
           (c/exec :wget "https://cdn.crate.io/downloads/apt/DEB-GPG-KEY-crate")
           (c/exec :apt-key :add "DEB-GPG-KEY-crate")
           (c/exec :rm "DEB-GPG-KEY-crate")
-          (c/exec :wget (str "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_" crateVersion "-1~jessie_all.deb"))
-          (c/exec :dpkg :-i (str "crate_" crateVersion "-1~jessie_all.deb"))
+          (c/exec :wget (str "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_" crateVersion ".deb"))
+          (c/exec :dpkg :-i (str "crate_" crateVersion ".deb"))
           (c/exec :apt-get :install :-f)
-          (c/exec :rm (str "crate_" crateVersion "-1~jessie_all.deb")))
+          (c/exec :rm (str "crate_" crateVersion ".deb")))
     (c/exec :update-rc.d :crate :disable))
   (info node "crate installed"))
 
@@ -354,7 +354,7 @@
 
 (def opt-spec
   "Additional command line options"
-  [[nil "--crate-version CRATE_VERSION" "CrateDB Version, e.g. 2.0.7"
+  [[nil "--crate-version CRATE_VERSION" "CrateDB Version, e.g. 2.0.7-1~jessie_all"
     :parse-fn keyword
     :missing  (str "Missing --crate-version CRATE_VERSION")
     ]])
