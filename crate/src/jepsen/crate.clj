@@ -1,19 +1,19 @@
 (ns jepsen.crate
   (:require [jepsen [core         :as jepsen]
-                    [db           :as db]
-                    [control      :as c :refer [|]]
-                    [checker      :as checker]
-                    [cli          :as cli]
-                    [client       :as client]
-                    [generator    :as gen]
-                    [independent  :as independent]
-                    [nemesis      :as nemesis]
-                    [net          :as net]
-                    [tests        :as tests]
-                    [util         :as util :refer [meh
-                                                   timeout
-                                                   with-retry]]
-                    [os           :as os]]
+             [db           :as db]
+             [control      :as c :refer [|]]
+             [checker      :as checker]
+             [cli          :as cli]
+             [client       :as client]
+             [generator    :as gen]
+             [independent  :as independent]
+             [nemesis      :as nemesis]
+             [net          :as net]
+             [tests        :as tests]
+             [util         :as util :refer [meh
+                                            timeout
+                                            with-retry]]
+             [os           :as os]]
             [jepsen.os.debian     :as debian]
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util  :as cu]
@@ -22,21 +22,22 @@
             [clojure.string       :as str]
             [clojure.java.io      :as io]
             [clojure.java.shell   :refer [sh]]
+            [clojure.java.jdbc :as j]
             [clojure.pprint :refer [pprint]]
             [clojure.tools.logging :refer [info warn]]
             [knossos.op           :as op])
-  (:import (java.net InetAddress)
-           (io.crate.client CrateClient)
-           (io.crate.action.sql SQLActionException
-                                SQLResponse
-                                SQLRequest)
+    (:import (java.net InetAddress)
+           (io.crate.shade.org.postgresql.util PSQLException)
+           (org.elasticsearch.rest RestStatus)
            (org.elasticsearch.common.unit TimeValue)
            (org.elasticsearch.common.settings
              Settings)
            (org.elasticsearch.common.transport
              InetSocketTransportAddress)
            (org.elasticsearch.client.transport
-             TransportClient)))
+             TransportClient)
+           (org.elasticsearch.transport.client
+             PreBuiltTransportClient)))
 
 (defn map->kw-map
   "Turns any map into a kw-keyed persistent map."
@@ -56,18 +57,37 @@
 
 ;; ES client
 
-(defn es-connect
+(defn ^TransportClient es-connect-
   "Open an elasticsearch connection to a node."
   [node]
-  (-> (TransportClient/builder)
-      (.settings (-> (Settings/settingsBuilder)
-                     (.put "cluster.name" "crate")
-                     (.put "client.transport.sniff" false)
-                     (.build)))
-      (.build)
-      (.addTransportAddress (InetSocketTransportAddress.
-                              (InetAddress/getByName (name node))
-                              4300))))
+  (..  (PreBuiltTransportClient.
+         (.. (Settings/builder)
+             (put "cluster.name" "crate")
+             (put "client.transport.sniff" false)
+             (build))
+         (make-array Class 0))
+      (addTransportAddress (InetSocketTransportAddress.
+                             (InetAddress/getByName (name node)) 9300))))
+
+(defn es-connect
+  "Opens an ES connection to a node, and ensures that it actually works"
+  [node]
+  (let [c (es-connect- node)]
+    (util/with-retry [i 10]
+      (-> c
+          (.admin)
+          (.cluster)
+          (.prepareState)
+          (.all)
+          (.execute)
+          (.actionGet))
+      c
+      (catch org.elasticsearch.client.transport.NoNodeAvailableException e
+        (when (zero? i)
+          (throw e))
+        (info "Client not ready:" (type e))
+        (Thread/sleep 5000)
+        (retry (dec i))))))
 
 (defn es-index!
   "Index a record"
@@ -77,7 +97,7 @@
                 (.prepareIndex index type (str (:id doc)))
                 (.setSource (json/generate-string doc))
                 (.get))]; why not execute/actionGet?
-    (when-not (.isCreated res)
+    (when-not (= RestStatus/CREATED (.status res))
       (throw (RuntimeException. "Document not created")))
     res))
 
@@ -122,44 +142,27 @@
               (.execute)
               (.actionGet)))))))
 
-;; Client
-(defn connect
-  "Opens a connection to a node."
+(def cratedb-spec {:dbtype "crate"
+                   :dbname "test"
+                   :classname "io.crate.client.jdbc.CrateDriver"
+                   :user "crate"
+                   :password ""
+                   :port 55432})
+
+(defn get-node-db-spec
+  "Creates the db spec for the provided node"
   [node]
-  (CrateClient. (into-array String [(name node)])))
-
-(defn parse
-  "Parse an SQLResponse into a sequence of maps."
-  [^SQLResponse res]
-  {:row-count (when (.hasRowCount res) (.rowCount res))
-   :duration  (.duration res)
-   :rows      (if (zero? (alength (.cols res)))
-                (repeat (count (.rows res)) {})
-                (let [columns (map keyword (.cols res))
-                      basis   (apply create-struct columns)]
-                  (map (fn structer [row]
-                         (clojure.lang.PersistentStructMap/construct
-                           basis (seq row)))
-                       (.rows res))))})
-
-(defn sql!
-  "Execute an SQL statement with a client and return its parsed results."
-  [^CrateClient client statement & args]
-  (let [req (SQLRequest. statement (into-array Object args))]
-    (-> client
-        (.sql req)
-        .actionGet
-        parse)))
+  (merge cratedb-spec {:host (name node)}))
 
 (defn await-client
   "Takes a client and waits for it to become ready"
-  [client test]
+  [dbspec node test]
   (timeout 120000
-           (throw (RuntimeException. (str client " did not start up")))
+           (throw (RuntimeException. (str (name node) " did not start up"))) 
            (with-retry []
-             (sql! client "select * from sys.nodes")
-             client
-             (catch io.crate.shade.org.elasticsearch.client.transport.NoNodeAvailableException e
+             (j/query dbspec ["select name from sys.nodes"])
+             dbspec
+             (catch PSQLException e
                (Thread/sleep 1000)
                (retry)))))
 
@@ -196,6 +199,8 @@
                 io/resource
                 slurp
                 (str/replace "$NAME" (name node))
+                (str/replace "$HOST" (.getHostAddress 
+                                       (InetAddress/getByName (name node))))
                 (str/replace "$N" (str (count (:nodes test))))
                 (str/replace "$MAJORITY" (str (majority (count (:nodes test)))))
                 (str/replace "$HOSTS"
@@ -235,17 +240,17 @@
   and maps common exceptions to short errors."
   [op & body]
   `(try ~@body
-        (catch SQLActionException e#
+        (catch PSQLException e#
           (cond
-            (and (= 5000 (.errorCode e#))
+            (and (= 0 (.errorCode e#))
                  (re-find #"blocked by: \[.+no master\];" (str e#)))
             (assoc ~op :type :fail, :error :no-master)
 
-            (and (= 4091 (.errorCode e#))
+            (and (= 0 (.errorCode e#))
                  (re-find #"document with the same primary key" (str e#)))
             (assoc ~op :type :fail, :error :duplicate-key)
 
-            (and (= 5000 (.errorCode e#))
+            (and (= 0 (.errorCode e#))
                  (re-find #"rejected execution" (str e#)))
             (do ; Back off a bit
                 (Thread/sleep 1000)
@@ -256,53 +261,56 @@
 
 (defn client
   ([] (client nil))
-  ([conn]
+  ([dbspec]
    (let [initialized? (promise)]
-    (reify client/Client
-      (setup! [this test node]
-        (let [conn (await-client (connect node) test)]
-          (when (deliver initialized? true)
-            (sql! conn "create table registers (
+     (reify client/Client
+       (setup! [this test node]
+         (let [dbspec (await-client (get-node-db-spec node) node test)]
+           (when (deliver initialized? true)
+             (j/execute! dbspec
+                         ["create table if not exists registers (
                           id     integer primary key,
-                          value  integer
-                       ) with (number_of_replicas = \"0-all\")"))
-          (client conn)))
+                          value  integer)"])
+             (j/execute! dbspec
+                         ["alter table registers
+                          set (number_of_replicas = \"0-all\")"]))
+             (client dbspec)))
 
-      (invoke! [this test op]
-        (let [[k v] (:value op)]
-          (timeout 500 (assoc op :type :fail, :error :timeout)
-            (try
-              (case (:f op)
-                :read (->> (sql! conn "select value, \"_version\"
-                                 from registers where id = ?" k)
-                           :rows
-                           first
-                           (independent/tuple k)
-                           (assoc op :type :ok, :value))
+       (invoke! [this test op]
+         (let [[k v] (:value op)]
+           (timeout 500 (assoc op :type :fail, :error :timeout)
+                    (try
+                      (case (:f op)
+                        :read (->> (j/query dbspec ["select value, \"_version\"
+                                                    from registers where id = ?" k])
+                                   first
+                                   (independent/tuple k)
+                                   (assoc op :type :ok, :value))
 
-                :write (let [res (sql! conn "insert into registers (id, value)
-                                            values (?, ?)
-                                            on duplicate key update
-                                            value = VALUES(value)"
-                                       k v)]
-                         (assoc op :type :ok)))
-              (catch SQLActionException e
-                (cond
-                  (and (= 5000 (.errorCode e))
-                       (re-find #"blocked by: \[.+no master\];" (str e)))
-                  (assoc op :type :fail, :error :no-master)
+                        :write (let [res (j/execute! dbspec
+                                                     ["insert into registers (id, value)
+                                                      values (?, ?)
+                                                      on duplicate key update
+                                                      value = VALUES(value)" k v])]
+                                 (assoc op :type :ok)))
 
-                  (and (= 5000 (.errorCode e))
-                       (re-find #"rejected execution" (str e)))
-                  (do ; Back off a bit
-                      (Thread/sleep 1000)
-                      (assoc op :type :info, :error :rejected-execution))
+                      (catch PSQLException e
+                        (cond
+                          (and (= 0 (.errorCode e))
+                               (re-find #"blocked by: \[.+no master\];" (str e)))
+                          (assoc op :type :fail, :error :no-master)
 
-                  :else
-                  (throw e)))))))
+                          (and (= 0 (.errorCode e))
+                               (re-find #"rejected execution" (str e)))
+                          (do ; Back off a bit
+                              (Thread/sleep 1000)
+                              (assoc op :type :info, :error :rejected-execution))
 
-      (teardown! [this test]
-        (.close conn))))))
+                          :else
+                          (throw e)))))))
+
+       (teardown! [this test]
+         )))))      
 
 (defn multiversion-checker
   "Ensures that every _version for a read has the *same* value."
