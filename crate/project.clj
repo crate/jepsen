@@ -18,5 +18,6 @@
   :dependencies [[org.clojure/clojure "1.8.0"]
                  [jepsen "0.1.4"]
                  [cheshire "5.6.2"]
-                 [org.elasticsearch/elasticsearch "2.3.4"]
-                 [io.crate/crate-client "0.55.2"]])
+                 [org.clojure/java.jdbc "0.7.2"]
+                 [org.elasticsearch.client/transport "5.4.3"]
+                 [io.crate/crate-jdbc "2.2.0"]])
