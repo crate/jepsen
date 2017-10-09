@@ -416,14 +416,14 @@ node.name: "$NAME"
 network.host: "$HOST"
 
 # Set a custom port for the node to node communication (4300 by default):
-#transport.tcp.port: 4300
+transport.tcp.port: 44300
 
 # Enable compression for all communication between nodes (disabled by
 # default):
 #transport.tcp.compress: true
 
 # Set a custom port to listen for HTTP traffic:
-#http.port: 4200
+http.port: 44200
 
 # Set a custom allowed content length:
 #http.max_content_length: 100mb
@@ -538,7 +538,7 @@ indices.recovery.internal_action_long_timeout: 1m
 #
 # Unicast discovery allows to explicitly control which nodes will be used
 # to discover the cluster by pinging them.
-discovery.zen.ping.unicast.hosts: ["n1:4300", "n2:4300", "n3:4300", "n4:4300", "n5:4300"]
+discovery.zen.ping.unicast.hosts: [$UNICAST_HOSTS]
 #  - host1:port
 #  - host2:port
 #
