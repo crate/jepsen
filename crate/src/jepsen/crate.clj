@@ -203,10 +203,11 @@
                                        (InetAddress/getByName (name node))))
                 (str/replace "$N" (str (count (:nodes test))))
                 (str/replace "$MAJORITY" (str (majority (count (:nodes test)))))
-                (str/replace "$HOSTS"
-                             (json/generate-string
-                               (vals (c/on-nodes test (fn [_ _]
-                                                        (cnet/local-ip)))))))
+                (str/replace "$UNICAST_HOSTS"
+                             (clojure.string/join ", " (map (fn [node] 
+                                                              (str "\"" (name node) ":44300\"" ))
+                                                            (:nodes test))))
+                )                   
             :> "/etc/crate/crate.yml"))
   (info node "configured"))
 
