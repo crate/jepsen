@@ -1,19 +1,19 @@
 (ns jepsen.crate
   (:require [jepsen [core         :as jepsen]
-             [db           :as db]
-             [control      :as c :refer [|]]
-             [checker      :as checker]
-             [cli          :as cli]
-             [client       :as client]
-             [generator    :as gen]
-             [independent  :as independent]
-             [nemesis      :as nemesis]
-             [net          :as net]
-             [tests        :as tests]
-             [util         :as util :refer [meh
-                                            timeout
-                                            with-retry]]
-             [os           :as os]]
+                    [db           :as db]
+                    [control      :as c :refer [|]]
+                    [checker      :as checker]
+                    [cli          :as cli]
+                    [client       :as client]
+                    [generator    :as gen]
+                    [independent  :as independent]
+                    [nemesis      :as nemesis]
+                    [net          :as net]
+                    [tests        :as tests]
+                    [util         :as util :refer [meh
+                                                   timeout
+                                                   with-retry]]
+                    [os           :as os]]
             [jepsen.os.debian     :as debian]
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util  :as cu]
@@ -26,7 +26,7 @@
             [clojure.pprint :refer [pprint]]
             [clojure.tools.logging :refer [info warn]]
             [knossos.op           :as op])
-    (:import (java.net InetAddress)
+  (:import (java.net InetAddress)
            (io.crate.shade.org.postgresql.util PSQLException)
            (org.elasticsearch.rest RestStatus)
            (org.elasticsearch.common.unit TimeValue)
@@ -67,7 +67,7 @@
              (build))
          (make-array Class 0))
       (addTransportAddress (InetSocketTransportAddress.
-                             (InetAddress/getByName (name node)) 9300))))
+                             (InetAddress/getByName (name node)) 44300))))
 
 (defn es-connect
   "Opens an ES connection to a node, and ensures that it actually works"
@@ -118,11 +118,11 @@
   [^TransportClient client]
   (loop [results []
          scroll  (-> client
-                    (.prepareSearch (into-array String []))
-                    (.setScroll (TimeValue. 60000))
-                    (.setSize 128)
-                    (.execute)
-                    (.actionGet))]
+                     (.prepareSearch (into-array String []))
+                     (.setScroll (TimeValue. 60000))
+                     (.setSize 128)
+                     (.execute)
+                     (.actionGet))]
     (let [hits (.getHits (.getHits scroll))]
       (if (zero? (count hits))
         ; Done
@@ -275,7 +275,7 @@
              (j/execute! dbspec
                          ["alter table registers
                           set (number_of_replicas = \"0-all\")"]))
-             (client dbspec)))
+           (client dbspec)))
 
        (invoke! [this test op]
          (let [[k v] (:value op)]
