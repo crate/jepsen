@@ -16,7 +16,7 @@
                     [os           :as os]]
             [jepsen.os.debian     :as debian]
             [jepsen.checker.timeline :as timeline]
-            [jepsen.crate         :as c]
+            [jepsen.crate.core    :as c]
             [clojure.java.jdbc    :as j]            
             [clojure.string       :as str]
             [clojure.set          :as set]
@@ -218,13 +218,13 @@
   [opts]
   (merge tests/noop-test
          {:name    (let [o (:es-ops opts)]
-                     (str "crate lost-updates "
+                     (str "dirty-read "
                           (str/join " " [(str "r="  (if (:read o)  "e" "c"))
                                          (str "w="  (if (:write o) "e" "c"))
                                          (str "sr=" (if (:strong-read o)
                                                       "e" "c"))])))
           :os      debian/os
-          :db      (c/db "2.1.7-1~jessie_all") ; TODO get this as argument (subs (str (get opts :crate-version)) 1))
+          :db      (c/db (subs (str (get opts :crate-version)) 1))
           :client  (es-client opts)
           :checker (checker/compose
                      {:dirty-read (checker)

@@ -18,7 +18,7 @@
                     [os           :as os]]
             [jepsen.os.debian     :as debian]
             [jepsen.checker.timeline :as timeline]
-            [jepsen.crate         :as c]
+            [jepsen.crate.core    :as c]
             [cheshire.core        :as json]
             [clojure.string       :as str]
             [clojure.java.jdbc    :as j]
@@ -100,9 +100,9 @@
         quiescence-time 20
         nemesis-time    (- time-limit quiescence-time)]
     (merge tests/noop-test
-           {:name    "crate lost-updates"
+           {:name    "lost-updates"
             :os      debian/os
-            :db      (c/db "2.1.7-1~jessie_all") ; TODO get this as argument (subs (str (get opts :crate-version)) 1))
+            :db      (c/db (subs (str (get opts :crate-version)) 1))
             :client  (client)
             :checker (checker/compose
                        {:set  (independent/checker checker/set)

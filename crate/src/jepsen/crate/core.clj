@@ -1,4 +1,4 @@
-(ns jepsen.crate
+(ns jepsen.crate.core
   (:require [jepsen [core         :as jepsen]
                     [db           :as db]
                     [control      :as c :refer [|]]

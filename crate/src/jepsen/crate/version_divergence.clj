@@ -2,6 +2,7 @@
   "Writes a series of unique integer values to a table whilst causing network 
    partitions and healing the network every 2 minutes.
    We will verify that each _version of a given row identifies a single value."
+  (:refer-clojure :exclude [test])
   (:require [jepsen [core         :as jepsen]
                     [checker      :as checker]
                     [cli          :as cli]
@@ -17,7 +18,7 @@
             [jepsen.checker.timeline :as timeline]
             [jepsen.control.util  :as cu]
             [jepsen.control.net   :as cnet]
-            [jepsen.crate         :as c]
+            [jepsen.crate.core    :as c]
             [clojure.string       :as str]
             [clojure.java.jdbc    :as j]
             [knossos.op           :as op])
@@ -98,10 +99,10 @@
        (map (fn [x] {:type :invoke, :f :write, :value x}))
        gen/seq))
 
-(defn version-divergence-test
+(defn test
   [opts]
   (merge tests/noop-test
-         {:name    "crate version-divergence"
+         {:name    "version-divergence"
           :os      debian/os
           :db      (c/db (subs (str (get opts :crate-version)) 1))
           :client  (client)
@@ -123,18 +124,3 @@
                                              {:type :info, :f :stop}])))
                           (gen/time-limit 360))}
          opts))
-
-(def opt-spec
-  "Additional command line options"
-  [[nil "--crate-version CRATE_VERSION" "CrateDB Version, e.g. 2.0.7-1~jessie_all"
-    :parse-fn keyword
-    :missing  (str "Missing --crate-version CRATE_VERSION")
-    ]])
-
-(defn -main [& args]
-  "Handles command line arguments. Can either run a test, or a web service
-  browsing results."
-  (cli/run! (merge (cli/single-test-cmd {:test-fn   version-divergence-test
-                                         :opt-spec  opt-spec})
-                   (cli/serve-cmd))
-            args))
