@@ -158,7 +158,7 @@
   "Takes a client and waits for it to become ready"
   [dbspec node test]
   (timeout 120000
-           (throw (RuntimeException. (str (name node) " did not start up"))) 
+           (throw (RuntimeException. (str (name node) " did not start up")))
            (with-retry []
              (j/query dbspec ["select name from sys.nodes"])
              dbspec
@@ -168,12 +168,24 @@
 
 ;; DB
 
+(defn install-open-jdk8!
+  "Installs open jdk8"
+  []
+  (c/su
+    (debian/add-repo!
+      "backports"
+      "deb http://http.debian.net/debian jessie-backports main")
+      (c/exec :apt-get :update)
+      (c/exec :apt-get :install :-y :-t :jessie-backports "openjdk-8-jdk")
+      (c/exec :update-java-alternatives :--set "java-1.8.0-openjdk-amd64")
+    ))
+
 (defn install!
   "Install crate."
   [node crateVersion]
   (c/su
     (debian/install [:apt-transport-https])
-    (debian/install-jdk8!)
+    (install-open-jdk8!)
     (c/cd "/tmp"
           (c/exec :wget "https://cdn.crate.io/downloads/apt/DEB-GPG-KEY-crate")
           (c/exec :apt-key :add "DEB-GPG-KEY-crate")
@@ -199,15 +211,15 @@
                 io/resource
                 slurp
                 (str/replace "$NAME" (name node))
-                (str/replace "$HOST" (.getHostAddress 
+                (str/replace "$HOST" (.getHostAddress
                                        (InetAddress/getByName (name node))))
                 (str/replace "$N" (str (count (:nodes test))))
                 (str/replace "$MAJORITY" (str (majority (count (:nodes test)))))
                 (str/replace "$UNICAST_HOSTS"
-                             (clojure.string/join ", " (map (fn [node] 
+                             (clojure.string/join ", " (map (fn [node]
                                                               (str "\"" (name node) ":44300\"" ))
                                                             (:nodes test))))
-                )                   
+                )
             :> "/etc/crate/crate.yml"))
   (info node "configured"))
 
