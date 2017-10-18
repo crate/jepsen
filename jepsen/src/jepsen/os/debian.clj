@@ -123,16 +123,12 @@
   []
   (c/su
     (add-repo!
-      "webupd8"
-      "deb http://ppa.launchpad.net/webupd8team/java/ubuntu trusty main"
-      "hkp://keyserver.ubuntu.com:80"
-      "EEA14886")
-    (c/exec :echo "debconf shared/accepted-oracle-license-v1-1 select true" |
-            :debconf-set-selections)
-    (c/exec :echo "debconf shared/accepted-oracle-license-v1-1 seen true" |
-            :debconf-set-selections)
-    (install [:oracle-java8-installer])
-    (install [:oracle-java8-set-default])))
+      "backports"
+      "deb http://http.debian.net/debian jessie-backports main")
+    (c/exec :apt-get "update")
+    (c/exec :apt-get "install -t jessie-backports openjdk-8-jdk")
+    (c/exec :update-java-alternatives "--set java-1.8.0-openjdk-amd64")
+  ))
 
 (def os
   (reify os/OS
