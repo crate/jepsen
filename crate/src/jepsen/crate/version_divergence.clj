@@ -1,5 +1,5 @@
 (ns jepsen.crate.version-divergence
-  "Writes a series of unique integer values to a table whilst causing network 
+  "Writes a series of unique integer values to a table whilst causing network
    partitions and healing the network every 2 minutes.
    We will verify that each _version of a given row identifies a single value."
   (:refer-clojure :exclude [test])
@@ -75,7 +75,7 @@
                           (throw e)))))))
 
        (teardown! [this test]
-         )))))      
+         )))))
 
 (defn multiversion-checker
   "Ensures that every _version for a read has the *same* value."
@@ -104,7 +104,7 @@
   (merge tests/noop-test
          {:name    "version-divergence"
           :os      debian/os
-          :db      (c/db (str/trim (str (get opts :crate-version))))
+          :db      (c/db (:tarball opts))
           :client  (client)
           :checker (checker/compose
                      {:multi    (independent/checker (multiversion-checker))

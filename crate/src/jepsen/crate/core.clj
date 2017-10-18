@@ -39,6 +39,11 @@
            (org.elasticsearch.transport.client
              PreBuiltTransportClient)))
 
+(def user "crate")
+(def base-dir "/opt/crate")
+(def pidfile "/tmp/crate.pid")
+(def stdout-logfile (str base-dir "/logs/stdout.log"))
+
 (defn map->kw-map
   "Turns any map into a kw-keyed persistent map."
   [x]
@@ -182,19 +187,13 @@
 
 (defn install!
   "Install crate."
-  [node crateVersion]
+  [node tarball-url]
   (c/su
     (debian/install [:apt-transport-https])
     (install-open-jdk8!)
-    (c/cd "/tmp"
-          (c/exec :wget "https://cdn.crate.io/downloads/apt/DEB-GPG-KEY-crate")
-          (c/exec :apt-key :add "DEB-GPG-KEY-crate")
-          (c/exec :rm "DEB-GPG-KEY-crate")
-          (c/exec :wget (str "https://cdn.crate.io/downloads/apt/stable/pool/main/c/crate/crate_" crateVersion ".deb"))
-          (c/exec :dpkg :-i (str "crate_" crateVersion ".deb"))
-          (c/exec :apt-get :install :-f)
-          (c/exec :rm (str "crate_" crateVersion ".deb")))
-    (c/exec :update-rc.d :crate :disable))
+    (cu/ensure-user! user)
+    (cu/install-tarball! node tarball-url base-dir false)
+    (c/exec :chown :-R (str user ":" user) base-dir))
   (info node "crate installed"))
 
 (defn majority
@@ -220,33 +219,46 @@
                                                               (str "\"" (name node) ":44300\"" ))
                                                             (:nodes test))))
                 )
-            :> "/etc/crate/crate.yml"))
+            :> (str base-dir "/config/crate.yml"))
+
+      (c/exec :echo
+            (-> "crate.in.sh"
+                io/resource
+                slurp)
+            :> (str base-dir "/bin/crate.in.sh")))
   (info node "configured"))
 
 (defn start!
   [node]
-  (c/su
-    (c/exec :service :crate :start)
-    (info node "started")))
+  (info node "starting crate")
+  (c/su (c/exec :sysctl :-w "vm.max_map_count=262144"))
+  (c/cd base-dir
+        (c/sudo user
+                (c/exec :mkdir :-p (str base-dir "/logs"))
+                (cu/start-daemon!
+                  {:logfile stdout-logfile
+                   :pidfile pidfile
+                   :chdir   base-dir}
+                  "bin/crate"))))
 
 (defn db
-  [crateVersion]
+  [tarball-url]
   (reify db/DB
     (setup! [_ test node]
       (doto node
-        (install! crateVersion)
+        (install! tarball-url)
         (configure! test)
         (start!)))
 
     (teardown! [_ test node]
       (cu/grepkill! "crate")
       (info node "killed")
-      (c/exec :rm :-rf (c/lit "/var/log/crate/*"))
-      (c/exec :rm :-rf (c/lit "/var/lib/crate/*")))
+      (c/exec :rm :-rf (c/lit (str base-dir "/logs/*")))
+      (c/exec :rm :-rf (c/lit (str base-dir "/data/*"))))
 
     db/LogFiles
     (log-files [_ test node]
-      ["/var/log/crate/crate.log"])))
+      [(str base-dir "/logs/crate.log")])))
 
 (defmacro with-errors
   "Unified error handling: takes an operation, evaluates body in a try/catch,

@@ -851,7 +851,7 @@ discovery.zen.fd.ping_interval: 1s
 # insert it via SQL you might get inconsistent data when querying
 
 # enable/disable elasticsearch HTTP REST API
-#es.api.enabled: false
+es.api.enabled: true
 
 
 ############################# BACKUP / RESTORE ###############################
