@@ -1,17 +1,17 @@
 # jepsen.crate
 
-A Clojure library designed to test CrateDB for the following issues that can 
+A Clojure library designed to test CrateDB for the following issues that can
 occur because of network partitioning:
 
  - Data divergence between the nodes
  - Dirty reads
- - Lost updates 
+ - Lost updates
 
 You can find detailed information on those three issues [here](https://github.com/elastic/elasticsearch/issues/20031).
 
 ## Usage
 
-For convenience and flexibility we have chosen to run the Jepsen tests using 
+For convenience and flexibility we have chosen to run the Jepsen tests using
 docker containers.
 
 #### Prepare Docker Containers
@@ -29,21 +29,21 @@ Once the docker containers are up and running from another terminal execute:
 
 Then inside the ``jepsen-control`` docker container run:
 
-    $ cd crate && ./runall.sh [CrateDB Version]
+    $ cd crate && ./runall.sh [CrateDB tarball URL]
 
-``CrateDB Version`` can be for example: ``2.1.7-1~jessie_all``
+``CrateDB tarball URL]`` can be for example: ``https://cdn.crate.io/downloads/releases/crate-2.1.8.tar.gz``
 
-We also have a test defined that runs dirty-read several times and mixes up 
-the operations (some against ``CrateDB`` and some against 
-``Elasticsearch``). This test scenario can be run using `lein test` in the 
-control box/container.
+We also have a test defined that runs dirty-read several times and mixes up
+the operations (some against ``CrateDB`` and some against
+``Elasticsearch``). This test scenario can be run using `lein test` in the
+control box/container (it points at the latest nightly build).
 
 #### Run Individual Tests
 
 If instead of running all the tests at once you want to run one them then
 execute:
 
-    $ cd crate/scripts && ./[TestScenario].sh [CrateDB Version]
+    $ cd crate/scripts && ./[TestScenario].sh [CrateDB tarball URL]
 
 ``TestScenario`` can be one of the:
 
@@ -67,8 +67,8 @@ Inside each individual run of a test you can find the log files and results of
 the test run. More specifically you can see:
 
  - ``jepsen.log`` contains logging information of the test run.
- - ``timeline.txt`` graphical timeline representation of the events that took 
-   place. 
+ - ``timeline.txt`` graphical timeline representation of the events that took
+   place.
  - ``latency-quantiles.png``, ``latency-raw.png``, ``rate.png`` various graphs
    related to the events that took place during the test run.
  - ``n[1-5]`` a directory for every CrateDB node configured for the test, each

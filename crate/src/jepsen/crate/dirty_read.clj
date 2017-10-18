@@ -17,7 +17,7 @@
             [jepsen.os.debian     :as debian]
             [jepsen.checker.timeline :as timeline]
             [jepsen.crate.core    :as c]
-            [clojure.java.jdbc    :as j]            
+            [clojure.java.jdbc    :as j]
             [clojure.string       :as str]
             [clojure.set          :as set]
             [clojure.pprint :refer [pprint]]
@@ -34,11 +34,11 @@
    (let [initialized? (promise)]
      (reify client/Client
        (setup! [this test node]
-         (let [dbspec (c/await-client (c/get-node-db-spec node) node test)]
+         (let [dbspec (c/get-node-db-spec node)]
            (when (deliver initialized? true)
              (j/execute! dbspec ["create table dirty_read (
                                  id integer primary key)"])
-             (j/execute! dbspec ["alter table dirty_read 
+             (j/execute! dbspec ["alter table dirty_read
                                  set (number_of_replicas = \"0-all\")"]))
            (client dbspec limit)))
 
@@ -224,7 +224,7 @@
                                          (str "sr=" (if (:strong-read o)
                                                       "e" "c"))])))
           :os      debian/os
-          :db      (c/db (str/trim (str (get opts :crate-version))))
+          :db      (c/db (:tarball opts))
           :client  (es-client opts)
           :checker (checker/compose
                      {:dirty-read (checker)

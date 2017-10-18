@@ -35,7 +35,7 @@
    (let [initialized? (promise)]
      (reify client/Client
        (setup! [this test node]
-         (let [dbspec (c/await-client (c/get-node-db-spec node) node test)]
+         (let [dbspec (c/get-node-db-spec node)]
            (when (deliver initialized? true)
              (j/execute! dbspec
                          ["create table if not exists sets (
@@ -69,7 +69,7 @@
                                               (conj v)
                                               json/generate-string)
                                      _ (assert (number? (:_version cur)))
-                                     row_count (first 
+                                     row_count (first
                                                  (j/execute! dbspec ["update sets set elements = ?
                                                                      where id = ? and _version = ?"
                                                                      els' k (:_version cur)]))]
@@ -102,7 +102,7 @@
     (merge tests/noop-test
            {:name    "lost-updates"
             :os      debian/os
-            :db      (c/db (str/trim (str (get opts :crate-version))))
+            :db      (c/db (:tarball opts))
             :client  (client)
             :checker (checker/compose
                        {:set  (independent/checker checker/set)

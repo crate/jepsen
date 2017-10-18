@@ -39,18 +39,14 @@
   [
    (jc/repeated-opt "-t" "--test NAME" "Test(s) to run" [] tests)
 
-   [nil "--es-ops ES_OPS" 
+   [nil "--es-ops ES_OPS"
     "Operations to run against the ES client, e.g. none or mix"
     :default #{}
     :parse-fn es-ops
     :validate [identity (jc/one-of es-ops)]
     ]
 
-   [nil "--crate-version CRATE_VERSION" 
-    "CrateDB Version, e.g. 2.0.7-1~jessie_all"
-    :parse-fn str
-    :missing  (str "Missing --crate-version CRATE_VERSION")
-   ]
+   (jc/tarball-opt "https://cdn.crate.io/downloads/releases/crate-2.2.0.tar.gz")
   ]
 )
 
@@ -65,6 +61,7 @@
            :opt-fn (fn [parsed]
                      (-> parsed
                          jc/test-opt-fn
+                         jc/validate-tarball
                          (jc/rename-options {:test   :test-fns})
                          ))
            :usage (jc/test-usage)
