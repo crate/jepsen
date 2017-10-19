@@ -102,7 +102,7 @@
     (merge tests/noop-test
            {:name    "lost-updates"
             :os      debian/os
-            :db      (c/db (subs (str (get opts :crate-version)) 1))
+            :db      (c/db (str/trim (str (get opts :crate-version))))
             :client  (client)
             :checker (checker/compose
                        {:set  (independent/checker checker/set)

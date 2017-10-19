@@ -33,6 +33,10 @@ Then inside the ``jepsen-control`` docker container run:
 
 ``CrateDB Version`` can be for example: ``2.1.7-1~jessie_all``
 
+We also have a test defined that runs dirty-read several times and mixes up 
+the operations (some against ``CrateDB`` and some against 
+``Elasticsearch``). This test scenario can be run using `lein test` in the 
+control box/container.
 
 #### Run Individual Tests
 

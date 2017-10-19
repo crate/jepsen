@@ -58,6 +58,7 @@
                                   #(jepsen/run!
                                      (dirty-read/test
                                        {:es-ops      es-ops
+                                        :crate-version "2.1.8-1~jessie_all"
                                         :concurrency 30
                                         :time-limit 100}))))]
                 [(:name (first ts))

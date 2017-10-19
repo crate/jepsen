@@ -104,7 +104,7 @@
   (merge tests/noop-test
          {:name    "version-divergence"
           :os      debian/os
-          :db      (c/db (subs (str (get opts :crate-version)) 1))
+          :db      (c/db (str/trim (str (get opts :crate-version))))
           :client  (client)
           :checker (checker/compose
                      {:multi    (independent/checker (multiversion-checker))

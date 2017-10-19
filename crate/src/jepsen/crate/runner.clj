@@ -48,7 +48,7 @@
 
    [nil "--crate-version CRATE_VERSION" 
     "CrateDB Version, e.g. 2.0.7-1~jessie_all"
-    :parse-fn keyword
+    :parse-fn str
     :missing  (str "Missing --crate-version CRATE_VERSION")
    ]
   ]
