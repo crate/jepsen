@@ -35,7 +35,7 @@
    (let [initialized? (promise)]
      (reify client/Client
        (setup! [this test node]
-         (let [dbspec (c/await-client (c/get-node-db-spec node) node test)]
+         (let [dbspec (c/get-node-db-spec node)]
            (when (deliver initialized? true)
              (j/execute! dbspec
                          ["create table if not exists sets (

@@ -25,6 +25,7 @@
             [clojure.java.shell   :refer [sh]]
             [clojure.pprint :refer [pprint]]
             [clojure.tools.logging :refer [info warn]]
+            [clj-http.client          :as http]
             [knossos.op           :as op])
   (:import (java.net InetAddress)
            (io.crate.shade.org.postgresql.util PSQLException)
@@ -159,16 +160,24 @@
   [node]
   (merge cratedb-spec {:host (name node)}))
 
-(defn await-client
-  "Takes a client and waits for it to become ready"
-  [dbspec node test]
-  (timeout 120000
-           (throw (RuntimeException. (str (name node) " did not start up")))
-           (with-retry []
-             (j/query dbspec ["select name from sys.nodes"])
-             dbspec
-             (catch PSQLException e
-               (Thread/sleep 1000)
+(defn wait
+  "Waits for crate to be healthy on the current node. Color is red,
+  yellow, or green; timeout is in seconds."
+  [node timeout-secs color]
+  (timeout (* 1000 timeout-secs)
+           (throw (RuntimeException.
+                    (str "Timed out after "
+                         timeout-secs
+                         " s waiting for crate cluster recovery")))
+           (util/with-retry []
+             (-> (str "http://" (name node) ":44200/_cluster/health/?"
+                      "wait_for_status=" (name color)
+                      "&timeout=" timeout-secs "s")
+                 (http/get {:as :json})
+                 :status
+                 (= 200)
+                 (or (retry)))
+             (catch java.io.IOException e
                (retry)))))
 
 ;; DB
@@ -239,7 +248,9 @@
                   {:logfile stdout-logfile
                    :pidfile pidfile
                    :chdir   base-dir}
-                  "bin/crate"))))
+                  "bin/crate")))
+  (wait node 90 :green)
+  (info node "crate started"))
 
 (defn db
   [tarball-url]

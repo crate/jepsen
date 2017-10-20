@@ -1,6 +1,6 @@
 #!/bin/sh
 
-CRATE_HEAP_SIZE=2g
+CRATE_HEAP_SIZE=512m
 
 # check in case a user was using this mechanism
 if [ "x$CRATE_CLASSPATH" != "x" ]; then

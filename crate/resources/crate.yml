@@ -444,7 +444,7 @@ gateway.recover_after_nodes: $MAJORITY
 
 # Defines the time to wait before starting the recovery once the number
 # of nodes defined in gateway.recover_after_nodes are started.
-gateway.recover_after_time: 5s
+gateway.recover_after_time: 15s
 
 # Defines how many nodes should be waited for until the cluster state is
 # recovered immediately. The value should be equal to the number of nodes
@@ -505,18 +505,14 @@ gateway.expected_nodes: $N
 #indices.recovery.retry_delay_network: 5s
 
 # Specifies the interval after which idle recoveries will be failed.
-# REPLACE! Has changed! indices.recovery.retry_activity_timeout: 30s
-indices.recovery.recovery_activity_timeout: 30s
+indices.recovery.recovery_activity_timeout: 3s
 
 # Specifies the timeout for internal requests made as part of the recovery.
-# REPLACE! Has changed! indices.recovery.retry_internal_action_timeout: 30s
-indices.recovery.internal_action_timeout: 30s
+indices.recovery.internal_action_timeout: 3s
 
 # Specifies the timeout for internal requests made as part of the recovery
 # that are expected to take a long time.
-# REPLACE! Has changed! indices.recovery.retry_internal_long_action_timeout: 1m
-
-indices.recovery.internal_action_long_timeout: 1m
+indices.recovery.internal_action_long_timeout: 6s
 
 
 ########################### Store Level Throttling ###########################
