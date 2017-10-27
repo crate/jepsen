@@ -9,6 +9,7 @@
                     [independent  :as independent]
                     [nemesis      :as nemesis]
                     [net          :as net]
+                    [store        :as store]
                     [tests        :as tests]
                     [util         :as util :refer [meh
                                                    timeout
@@ -24,7 +25,7 @@
             [clojure.java.io      :as io]
             [clojure.java.shell   :refer [sh]]
             [clojure.pprint :refer [pprint]]
-            [clojure.tools.logging :refer [info warn]]
+            [clojure.tools.logging :refer [info warn error]]
             [clj-http.client          :as http]
             [knossos.op           :as op])
   (:import (java.net InetAddress)
@@ -160,15 +161,22 @@
   [node]
   (merge cratedb-spec {:host (name node)}))
 
+(defn log-and-exit [test ex]
+   (error ex "Encountered unexpected error. Exiting ...")
+   (jepsen/snarf-logs! test)
+   (store/update-symlinks! test)
+   (System/exit 1))
+
 (defn wait
   "Waits for crate to be healthy on the current node. Color is red,
   yellow, or green; timeout is in seconds."
-  [node timeout-secs color]
+  [test node timeout-secs color]
   (timeout (* 1000 timeout-secs)
-           (throw (RuntimeException.
-                    (str "Timed out after "
+           (let [ex (RuntimeException. 
+                       (str "Timed out after "
                          timeout-secs
-                         " s waiting for crate cluster recovery")))
+                         " s waiting for crate cluster recovery"))]
+             (log-and-exit test ex))
            (util/with-retry []
              (-> (str "http://" (name node) ":44200/_cluster/health/?"
                       "wait_for_status=" (name color)
@@ -238,7 +246,7 @@
   (info node "configured"))
 
 (defn start!
-  [node]
+  [node test]
   (info node "starting crate")
   (c/su (c/exec :sysctl :-w "vm.max_map_count=262144"))
   (c/cd base-dir
@@ -249,7 +257,7 @@
                    :pidfile pidfile
                    :chdir   base-dir}
                   "bin/crate")))
-  (wait node 90 :green)
+  (wait test node 90 :green)
   (info node "crate started"))
 
 (defn db
@@ -259,7 +267,7 @@
       (doto node
         (install! tarball-url)
         (configure! test)
-        (start!)))
+        (start! test)))
 
     (teardown! [_ test node]
       (cu/grepkill! "crate")

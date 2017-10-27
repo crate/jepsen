@@ -75,8 +75,7 @@
                                    test-fn
                                    log-test
                                    jepsen/run!)]
-                      (when-not (:valid? (:results test))
-                        (System/exit 1)))))}})
+                    )))}})
 
 (defn -main
   [& args]
