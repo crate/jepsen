@@ -278,15 +278,15 @@
   `(try ~@body
         (catch PSQLException e#
           (cond
-            (and (= 0 (.errorCode e#))
+            (and (= 0 (.getErrorCode e#))
                  (re-find #"blocked by: \[.+no master\];" (str e#)))
             (assoc ~op :type :fail, :error :no-master)
 
-            (and (= 0 (.errorCode e#))
+            (and (= 0 (.getErrorCode e#))
                  (re-find #"document with the same primary key" (str e#)))
             (assoc ~op :type :fail, :error :duplicate-key)
 
-            (and (= 0 (.errorCode e#))
+            (and (= 0 (.getErrorCode e#))
                  (re-find #"rejected execution" (str e#)))
             (do ; Back off a bit
                 (Thread/sleep 1000)
