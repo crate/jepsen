@@ -66,7 +66,7 @@
                         (assoc op :type (if v :ok :fail)))
 
                 ; Refresh table
-                :refresh (do (j/execute! c ["refresh table dirty_read"] 
+                :refresh (do (j/execute! c ["refresh table dirty_read"]
                                          {:timeout 60000})
                              (assoc op :type :ok))
 
@@ -217,41 +217,43 @@
             ; Remaining processes try to read the most recent write
             {:type :invoke, :f :read, :value (nth @in-flight n)}))))))
 
-(defn test
-  "Options:
+;(defn test
+;  "Options:
+;
+;  :concurrency  - Number of concurrent clients
+;  :es-ops       - Set of operations to perform using an ES client directly
+;  :time-limit   - Time, in seconds, to run the main body of the test."
+;  [opts]
+;  (merge tests/noop-test
+;         {:name    (let [o (:es-ops opts)]
+;                     (str "dirty-read "
+;                          (str/join " " [(str "r="  (if (:read o)  "e" "c"))
+;                                         (str "w="  (if (:write o) "e" "c"))
+;                                         (str "sr=" (if (:strong-read o)
+;                                                      "e" "c"))])))
+;          :os      debian/os
+;          :db      (c/db (:tarball opts))
+;          :client  (es-client opts)
+;          :checker (checker/compose
+;                     {:dirty-read (checker)
+;                      :perf       (checker/perf)})
+;          :concurrency (:concurrency opts)
+;          :nemesis (nemesis/partition-random-halves)
+;          :generator (gen/phases
+;                       (->> (rw-gen (/ (:concurrency opts) 3))
+;                            (gen/stagger 1/10)
+;                            (gen/nemesis ;nil)
+;                                         (gen/seq (cycle [(gen/sleep 10)
+;                                                          {:type :info, :f :start}
+;                                                          (gen/sleep 20)
+;                                                          {:type :info, :f :stop}])))
+;                            (gen/time-limit (:time-limit opts)))
+;                       (gen/nemesis (gen/once {:type :info :f :stop}))
+;                       (gen/clients (gen/each
+;                                      (gen/once {:type :invoke, :f :refresh})))
+;                       (gen/log "Waiting for quiescence")
+;                       (gen/sleep 10)
+;                       (gen/clients (gen/each (gen/once sr))))}
+;         opts))
 
-  :concurrency  - Number of concurrent clients
-  :es-ops       - Set of operations to perform using an ES client directly
-  :time-limit   - Time, in seconds, to run the main body of the test."
-  [opts]
-  (merge tests/noop-test
-         {:name    (let [o (:es-ops opts)]
-                     (str "dirty-read "
-                          (str/join " " [(str "r="  (if (:read o)  "e" "c"))
-                                         (str "w="  (if (:write o) "e" "c"))
-                                         (str "sr=" (if (:strong-read o)
-                                                      "e" "c"))])))
-          :os      debian/os
-          :db      (c/db (:tarball opts))
-          :client  (es-client opts)
-          :checker (checker/compose
-                     {:dirty-read (checker)
-                      :perf       (checker/perf)})
-          :concurrency (:concurrency opts)
-          :nemesis (nemesis/partition-random-halves)
-          :generator (gen/phases
-                       (->> (rw-gen (/ (:concurrency opts) 3))
-                            (gen/stagger 1/10)
-                            (gen/nemesis ;nil)
-                                         (gen/seq (cycle [(gen/sleep 10)
-                                                          {:type :info, :f :start}
-                                                          (gen/sleep 20)
-                                                          {:type :info, :f :stop}])))
-                            (gen/time-limit (:time-limit opts)))
-                       (gen/nemesis (gen/once {:type :info :f :stop}))
-                       (gen/clients (gen/each
-                                      (gen/once {:type :invoke, :f :refresh})))
-                       (gen/log "Waiting for quiescence")
-                       (gen/sleep 10)
-                       (gen/clients (gen/each (gen/once sr))))}
-         opts))
+(defn test [opts] (println (System/getProperty "es.set.netty.runtime.available.processors")))
