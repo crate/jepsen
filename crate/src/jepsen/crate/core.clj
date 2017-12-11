@@ -357,7 +357,7 @@
 
     db/LogFiles
     (log-files [_ test node]
-      [(str base-dir "/logs/crate.log")])))
+      [stdout-logfile])))
 
 (defmacro with-errors
   "Unified error handling: takes an operation, evaluates body in a try/catch,
