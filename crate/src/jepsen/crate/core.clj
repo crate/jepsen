@@ -337,7 +337,7 @@
                    :pidfile pidfile
                    :chdir   base-dir}
                   "bin/crate")))
-  (wait test node 90 :green)
+  (wait test node 180 :green)
   (info node "crate started"))
 
 (defn db
