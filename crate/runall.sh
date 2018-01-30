@@ -11,10 +11,15 @@ do
     sleep 15
     for i in $(seq 1 5)
     do
-	    nodeName="n$i"
+        nodeName="n$i"
         test_dir=$(ls -d store/[${test}]*)
         latest_test_dir=$(ls -Art store/${test}* | tail -n 1)
-        ssh root@"$nodeName" 'dmesg' > "${test_dir}/${latest_test_dir}/${nodeName}_dmesg.out"
+       	scp root@"$nodeName":/var/log/auth.log "${test_dir}/${latest_test_dir}/${nodeName}_auth.out"
+        scp root@"$nodeName":/var/log/syslog "${test_dir}/${latest_test_dir}/${nodeName}_syslog"
+        
+        #ssh root@"$nodeName" 'dmesg' > "${test_dir}/${latest_test_dir}/${nodeName}_dmesg.out"
+        #ssh root@"$nodeName" 'ls /opt' > "${test_dir}/${latest_test_dir}/${nodeName}_dmesg.out"
+        #ssh root@"$nodeName" 'ls /opt/crate' >> "${test_dir}/${latest_test_dir}/${nodeName}_dmesg.out"
     done
 done
 
