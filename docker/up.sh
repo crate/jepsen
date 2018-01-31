@@ -98,6 +98,7 @@ INFO "Running \`docker-compose up\`"
 if [ "$RUN_AS_DAEMON" ]; then
     docker-compose -f docker-compose.yml $DEV up -d
     INFO "All containers started, run \`docker ps\` to view"
+    for i in {1..5}; do docker exec jepsen-n${i} service rsyslog start ; done;
     exit 0
 else
     INFO "Please run \`docker exec -it jepsen-control bash\` in another terminal to proceed"
