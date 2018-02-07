@@ -1,7 +1,7 @@
 (defproject jepsen.crate "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+  :description "CrateDB Jepsen Test Runner"
   :main jepsen.crate.runner
-  :url "http://example.com/FIXME"
+  :url "https://crate.io"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
   :repositories [["bintray" "https://dl.bintray.com/crate/crate"]]
