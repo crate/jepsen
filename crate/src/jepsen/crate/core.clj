@@ -332,11 +332,17 @@
   (c/cd base-dir
         (c/sudo user
                 (c/exec :mkdir :-p (str base-dir "/logs"))
-                (cu/start-daemon!
-                  {:logfile stdout-logfile
-                   :pidfile pidfile
-                   :chdir   base-dir}
-                  "bin/crate")))
+                (try
+                  (cu/start-daemon!
+                    {:logfile stdout-logfile
+                     :pidfile pidfile
+                     :chdir   base-dir}
+                    "bin/crate")
+                  (catch Exception e 
+                    (error e "Encountered error trying to start node")
+                    (throw e)
+                    ))
+                ))
   (wait test node 90 :green)
   (info node "crate started"))
 
